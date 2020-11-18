@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "reqchannel.hpp"
+#include "netreqchannel.hpp"
 #include "pcbuffer.hpp"
 
 /*--------------------------------------------------------------------------*/
@@ -65,7 +65,7 @@ typedef struct {
 typedef struct {
     size_t* n_wkr_threads;
     PCBuffer* PCB;
-    RequestChannel* rc;
+    NetworkRequestChannel* rc;
     std::unordered_map<std::string, PatientHistogram>* PatientData;
 } WTFargs;
 
@@ -341,7 +341,7 @@ int main(int argc, char * argv[]) {
             std::cout << "Reply to request 'newthread' is " << reply << std::endl;
             std::cout << "Establishing new control channel... " << std::flush;
             // These channels need to be allocated on the heap for the same reason as the stats buffers.
-            RequestChannel* new_chan = new RequestChannel(reply, RequestChannel::Side::CLIENT);
+            NetworkRequestChannel* new_chan = new RequestChannel(reply, RequestChannel::Side::CLIENT); //TODO: CHANGE
             std::cout << "done." << std::endl;
             create_worker(i, new_chan, &PCB, &n_wkr_threads, &patient_data, wk_threads, wtfargs);
         }

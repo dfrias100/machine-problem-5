@@ -1,12 +1,12 @@
 /* 
-    File: semaphore.cpp
+    File: netreqchannel.cpp
 
     Author: Daniel Frias
             Department of Computer Science
             Texas A&M University
-    Date  : 2020/09/30
+    Date  : 2020/11/16
 
-    Source code for the Semaphore class.
+    Source code for the NetReqChannel class.
 */
 
 /*--------------------------------------------------------------------------*/
@@ -19,7 +19,7 @@
 /* INCLUDES */
 /*--------------------------------------------------------------------------*/
 
-#include "semaphore.hpp"
+#include "netreqchannel.hpp"
 
 /*--------------------------------------------------------------------------*/
 /* NAME SPACES */ 
@@ -46,36 +46,29 @@
 /* -- (none) -- */
 
 /*--------------------------------------------------------------------------*/
-/* FUNCTIONS FOR CLASS S e m a p h o r e */
+/* FUNCTIONS FOR CLASS P C B u f f e r */
 /*--------------------------------------------------------------------------*/
 
-Semaphore::Semaphore(int _val) : value(_val) {
-    m = PTHREAD_MUTEX_INITIALIZER;
-    c = PTHREAD_COND_INITIALIZER;
+NetworkRequestChannel::NetworkRequestChannel(const string _server_host_name, const unsigned short _port_no) {
+
 }
 
-Semaphore::~Semaphore() {
-    pthread_cond_destroy(&c);
-    pthread_mutex_destroy(&m);
+NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void * (*connection_handler) (int *)) {
+
 }
 
-int Semaphore::P() {
-    pthread_mutex_lock(&m);
-    /* If the semaphore value is 0, it should not let any threads in. As the value of the semaphore
-       indicates the number of threads that can be there at once. */
-    while (value == 0)
-        pthread_cond_wait(&c, &m);
-    /* Once the value is greater than zero, then we can decrease the value once more. */
-    value--;
-    pthread_mutex_unlock(&m);
-    return value;
+NetworkRequestChannel::~NetworkRequestChannel() {
+
 }
 
-int Semaphore::V() {
-    pthread_mutex_lock(&m);
-    value++;
-    /* A thread waiting on a semaphore will automatically be signalled once the value has been incremented. */
-    pthread_cond_signal(&c);
-    pthread_mutex_unlock(&m);
-    return value;
+string NetworkRequestChannel::send_request(string _request) {
+    return "message";
+}
+
+string NetworkRequestChannel::cread() {
+    return "message";
+}
+
+int NetworkRequestChannel::cwrite(string _msg) {
+    return 0;
 }

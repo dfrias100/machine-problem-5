@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "reqchannel.hpp"
+#include "netreqchannel.hpp"
 
 /*--------------------------------------------------------------------------*/
 /* DATA STRUCTURES */ 
