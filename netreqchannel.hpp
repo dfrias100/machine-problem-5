@@ -21,7 +21,7 @@
 /* INCLUDES */
 /*--------------------------------------------------------------------------*/
 
-//#include <iostream>
+#include <iostream>
 //#include <fstream>
 
 #include <string>
@@ -54,6 +54,7 @@ private:
   
   Side my_side;
   int fd; // socket file descriptor;
+  const int MAX_MESSAGE = 255;
 
 public:
 
