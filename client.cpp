@@ -303,7 +303,7 @@ int main(int argc, char * argv[]) {
     } else {
         std::cout << "CLIENT STARTED:" << std::endl;
         std::cout << "Establishing control channel... " << std::flush;
-        RequestChannel control(hostname, port_num);
+        NetworkRequestChannel control(hostname, port_num);
         std::cout << "done." << std::endl;
 
         /* We use a hashmap so we can use the patient's name as a key to access the relevant data */
