@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "reqchannel.hpp"
+#include "netreqchannel.hpp"
 
 /*--------------------------------------------------------------------------*/
 /* DATA STRUCTURES */ 
@@ -182,6 +182,32 @@ void handle_process_loop(RequestChannel & _channel) {
 /*--------------------------------------------------------------------------*/
 
 int main(int argc, char * argv[]) {
+  unsigned short port_num = 0;
+  size_t backlog = 0;
+        
+  int opt;
+
+  while((opt = getopt(argc, argv, ":p:b:")) != -1) {
+    switch (opt) {
+      case 'p':
+        sscanf(optarg, "%hu", &port_num);
+        break;
+      case 'b':
+        sscanf(optarg, "%zu", &backlog);
+        break;
+      case ':':
+        std::cout << "Invalid parameters or no parameters passed. Check your input and start again." << std::endl;
+        return 1;
+      case '?':
+        std::cout << "Unknown argument" << std::endl;
+        return 1;
+    }
+  }
+
+  if (port_num == 0 || backlog == 0) {
+    std::cout << "Invalid parameters or no parameters passed. Check your input and start again." << std::endl;
+    exit(1);
+  } 
 
   //  std::cout << "Establishing control channel... " << std::flush;
   RequestChannel control_channel("control", RequestChannel::Side::SERVER);

@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "reqchannel.hpp"
+#include "netreqchannel.hpp"
 #include "pcbuffer.hpp"
 
 /*--------------------------------------------------------------------------*/
@@ -65,7 +65,7 @@ typedef struct {
 typedef struct {
     size_t* n_wkr_threads;
     PCBuffer* PCB;
-    RequestChannel* rc;
+    NetworkRequestChannel* rc;
     std::unordered_map<std::string, PatientHistogram>* PatientData;
 } WTFargs;
 
@@ -261,10 +261,12 @@ int main(int argc, char * argv[]) {
     size_t num_requests = 0;
     size_t pcb_size = 0;
     size_t num_threads = 0;
+    string hostname;
+    unsigned short port_num = 0;
         
     int opt;
 
-    while((opt = getopt(argc, argv, ":n:b:w:")) != -1) {
+    while((opt = getopt(argc, argv, ":n:b:w:h:p:")) != -1) {
         switch (opt) {
             case 'n':
                 sscanf(optarg, "%zu", &num_requests);
@@ -274,6 +276,12 @@ int main(int argc, char * argv[]) {
                 break;
             case 'w':
                 sscanf(optarg, "%zu", &num_threads);
+                break;
+            case 'h':
+                hostname = optarg;
+                break;
+            case 'p':
+                sscanf(optarg, "%hu", &port_num);
                 break;
             case ':':
                 std::cout << "Invalid parameters or no parameters passed. Check your input and start again." << std::endl;
@@ -295,7 +303,7 @@ int main(int argc, char * argv[]) {
     } else {
         std::cout << "CLIENT STARTED:" << std::endl;
         std::cout << "Establishing control channel... " << std::flush;
-        RequestChannel chan("control", RequestChannel::Side::CLIENT);
+        RequestChannel control(hostname, port_num);
         std::cout << "done." << std::endl;
 
         /* We use a hashmap so we can use the patient's name as a key to access the relevant data */
@@ -337,11 +345,11 @@ int main(int argc, char * argv[]) {
         std::cout << "done." << std::endl;
 
         for (size_t i = 0; i < num_threads; i++) {
-            std::string reply = chan.send_request("newthread");
+            std::string reply = control.send_request("newthread");
             std::cout << "Reply to request 'newthread' is " << reply << std::endl;
             std::cout << "Establishing new control channel... " << std::flush;
             // These channels need to be allocated on the heap for the same reason as the stats buffers.
-            RequestChannel* new_chan = new RequestChannel(reply, RequestChannel::Side::CLIENT);
+            NetworkRequestChannel* new_chan = new RequestChannel(hostname, port_num); //TODO: CHANGE
             std::cout << "done." << std::endl;
             create_worker(i, new_chan, &PCB, &n_wkr_threads, &patient_data, wk_threads, wtfargs);
         }
@@ -352,7 +360,7 @@ int main(int argc, char * argv[]) {
             pthread_join(st_threads[i], NULL);
 
         std::cout << "Closing control request channel..." << std::endl;
-        std::string fin_reply = chan.send_request("quit");
+        std::string fin_reply = control.send_request("quit");
         std::cout << "Reply from control channel read: " << fin_reply << std::endl;
         std::cout << "done." << std::endl;
 
