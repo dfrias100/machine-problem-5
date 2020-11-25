@@ -55,7 +55,7 @@ static int nthreads = 0;
 /* FORWARDS */
 /*--------------------------------------------------------------------------*/
 
-void handle_process_loop(RequestChannel & _channel);
+void handle_process_loop(NetworkRequestChannel & _channel);
 
 /*--------------------------------------------------------------------------*/
 /* LOCAL FUNCTIONS -- SUPPORT FUNCTIONS */
@@ -83,7 +83,7 @@ std::string generate_data() {
 
 void * handle_data_requests(void * args) {
 
-  RequestChannel * data_channel =  (RequestChannel*)args;
+  NetworkRequestChannel * data_channel =  (NetworkRequestChannel*)args;
 
   // -- Handle client requests on this channel. 
   
@@ -100,16 +100,16 @@ void * handle_data_requests(void * args) {
 /* LOCAL FUNCTIONS -- INDIVIDUAL REQUESTS */
 /*--------------------------------------------------------------------------*/
 
-void process_hello(RequestChannel & _channel, const std::string & _request) {
+void process_hello(NetworkRequestChannel & _channel, const std::string & _request) {
   _channel.cwrite("hello to you too");
 }
 
-void process_data(RequestChannel & _channel, const std::string &  _request) {
+void process_data(NetworkRequestChannel & _channel, const std::string &  _request) {
   std::string data = generate_data();
   _channel.cwrite(data);
 }
 
-void process_newthread(RequestChannel & _channel, const std::string & _request) {
+void process_newthread(NetworkRequestChannel & _channel, const std::string & _request) {
   int error;
   nthreads ++;
 
@@ -123,7 +123,7 @@ void process_newthread(RequestChannel & _channel, const std::string & _request) 
 
   // -- Construct new data channel (pointer to be passed to thread function)
   
-  RequestChannel * data_channel = new RequestChannel(new_channel_name, RequestChannel::Side::SERVER);
+  NetworkRequestChannel * data_channel = new RequestChannel(new_channel_name, RequestChannel::Side::SERVER);
 
   // -- Create new thread to handle request channel
 
@@ -139,7 +139,7 @@ void process_newthread(RequestChannel & _channel, const std::string & _request) 
 /* LOCAL FUNCTIONS -- THE PROCESS REQUEST LOOP */
 /*--------------------------------------------------------------------------*/
 
-void process_request(RequestChannel & _channel, const std::string & _request) {
+void process_request(NetworkRequestChannel & _channel, const std::string & _request) {
 
   if (_request.compare(0, 5, "hello") == 0) {
     process_hello(_channel, _request);
@@ -156,7 +156,7 @@ void process_request(RequestChannel & _channel, const std::string & _request) {
 
 }
 
-void handle_process_loop(RequestChannel & _channel) {
+void handle_process_loop(NetworkRequestChannel & _channel) {
 
   for(;;) {
 
@@ -183,7 +183,7 @@ void handle_process_loop(RequestChannel & _channel) {
 
 int main(int argc, char * argv[]) {
   unsigned short port_num = 0;
-  size_t backlog = 0;
+  int backlog = 0;
         
   int opt;
 
@@ -193,7 +193,7 @@ int main(int argc, char * argv[]) {
         sscanf(optarg, "%hu", &port_num);
         break;
       case 'b':
-        sscanf(optarg, "%zu", &backlog);
+        sscanf(optarg, "%d", &backlog);
         break;
       case ':':
         std::cout << "Invalid parameters or no parameters passed. Check your input and start again." << std::endl;
@@ -210,10 +210,10 @@ int main(int argc, char * argv[]) {
   } 
 
   //  std::cout << "Establishing control channel... " << std::flush;
-  RequestChannel control_channel("control", RequestChannel::Side::SERVER);
+  NetworkRequestChannel control_channel(port_num, handle_process_loop, backlog);
   //  std::cout << "done.\n" << std::endl;
 
-  handle_process_loop(control_channel);
+  //handle_process_loop(control_channel);
 
 }
 

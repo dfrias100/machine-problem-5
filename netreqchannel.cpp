@@ -91,8 +91,32 @@ NetworkRequestChannel::NetworkRequestChannel(const string _server_host_name, con
     my_side = Side::CLIENT;
 }
 
-NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void * (*connection_handler) (int *)) {
+NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void * (*connection_handler) (int *), int backlog) {
+    int s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0) {
+        cerr << "Can't create socket: " << strerror(errno) << endl;
+        exit(1);
+    }
 
+    struct sockaddr_in sin;
+    memset(&sin, 0, sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = htonl(INADDR_ANY);
+    sin.sin_port = htons(_port_no);
+
+    if (bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
+        cerr << "Cannot bind socket" << endl;
+        exit(1);
+    }
+
+    if (listen(s, backlog) < 0) {
+        cerr << "Cannot listen on socket." << endl;
+        exit(1);
+    }
+
+    fd = s;
+
+    my_side = Side::SERVER;
 }
 
 NetworkRequestChannel::~NetworkRequestChannel() {
