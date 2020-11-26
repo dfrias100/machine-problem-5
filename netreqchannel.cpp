@@ -91,7 +91,7 @@ NetworkRequestChannel::NetworkRequestChannel(const string _server_host_name, con
     my_side = Side::CLIENT;
 }
 
-NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void * (*connection_handler) (int *), int backlog) {
+NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void * (*connection_handler) (void *), int backlog) {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) {
         cerr << "Can't create socket: " << strerror(errno) << endl;
@@ -117,6 +117,20 @@ NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void
     fd = s;
 
     my_side = Side::SERVER;
+
+    int s_sock;
+    struct sockaddr_in fsin;
+    socklen_t fsin_sz = sizeof(struct sockaddr_in);
+    pthread_t th; 
+    pthread_attr_t ta;
+    pthread_attr_init(&ta);
+    pthread_attr_setdetachstate(&ta, PTHREAD_CREATE_DETACHED);
+    for (;;) {
+        s_sock = accept(s, (struct sockaddr *)&fsin, &fsin_sz);
+        int * p_s_sock = new int;
+        *p_s_sock = s_sock;
+        pthread_create(&th, &ta, connection_handler, (void *)p_s_sock);
+    }
 }
 
 NetworkRequestChannel::~NetworkRequestChannel() {

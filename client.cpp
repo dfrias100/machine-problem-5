@@ -227,7 +227,7 @@ void* stats_thread_func(void* args) {
 /* These functions prepare the arguments and then creates the thread; The thread is linked to their arguments with the
    the thread index that it takes in, along with the other required objects needed to create the thread */
 
-void create_worker(int _thread_num, RequestChannel* _rc, PCBuffer* _PCB, size_t* n_wkr_thread_count, 
+void create_worker(int _thread_num, NetworkRequestChannel* _rc, PCBuffer* _PCB, size_t* n_wkr_thread_count, 
                     std::unordered_map<std::string, PatientHistogram>* patient_data,
                     pthread_t* wk_threads, WTFargs* args) {
     args[_thread_num].PCB = _PCB;
@@ -345,11 +345,11 @@ int main(int argc, char * argv[]) {
         std::cout << "done." << std::endl;
 
         for (size_t i = 0; i < num_threads; i++) {
-            std::string reply = control.send_request("newthread");
-            std::cout << "Reply to request 'newthread' is " << reply << std::endl;
-            std::cout << "Establishing new control channel... " << std::flush;
+            //std::string reply = control.send_request("newthread"); // Superfluous
+            //std::cout << "Reply to request 'newthread' is " << reply << std::endl;
+            std::cout << "Establishing new request channel... " << std::flush;
             // These channels need to be allocated on the heap for the same reason as the stats buffers.
-            NetworkRequestChannel* new_chan = new RequestChannel(hostname, port_num); //TODO: CHANGE
+            NetworkRequestChannel* new_chan = new NetworkRequestChannel(hostname, port_num); //TODO: CHANGE
             std::cout << "done." << std::endl;
             create_worker(i, new_chan, &PCB, &n_wkr_threads, &patient_data, wk_threads, wtfargs);
         }

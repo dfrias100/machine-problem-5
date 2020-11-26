@@ -65,7 +65,7 @@ public:
      to the given port number at the given server host. 
      THIS CONSTRUCTOR IS CALLED BY THE CLIENT. */
 
-  NetworkRequestChannel(const unsigned short _port_no, void * (*connection_handler) (int *), int backlog);
+  NetworkRequestChannel(const unsigned short _port_no, void * (*connection_handler) (void *), int backlog);
   /* Creates a SERVER-SIDE local copy of the channel that is accepting connections
      at the given port number.
      NOTE that multiple clients can be connected to the same server-side end of the

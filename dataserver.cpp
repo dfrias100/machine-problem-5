@@ -55,7 +55,7 @@ static int nthreads = 0;
 /* FORWARDS */
 /*--------------------------------------------------------------------------*/
 
-void handle_process_loop(NetworkRequestChannel & _channel);
+//void handle_process_loop(NetworkRequestChannel & _channel);
 
 /*--------------------------------------------------------------------------*/
 /* LOCAL FUNCTIONS -- SUPPORT FUNCTIONS */
@@ -81,7 +81,7 @@ std::string generate_data() {
 /* LOCAL FUNCTIONS -- THREAD FUNCTIONS */
 /*--------------------------------------------------------------------------*/
 
-void * handle_data_requests(void * args) {
+/*void * handle_data_requests(void * args) {
 
   NetworkRequestChannel * data_channel =  (NetworkRequestChannel*)args;
 
@@ -94,13 +94,13 @@ void * handle_data_requests(void * args) {
   delete data_channel;
 
   return nullptr; // keep compiler happy
-}
+}*/
 
 /*--------------------------------------------------------------------------*/
 /* LOCAL FUNCTIONS -- INDIVIDUAL REQUESTS */
 /*--------------------------------------------------------------------------*/
 
-void process_hello(NetworkRequestChannel & _channel, const std::string & _request) {
+/*void process_hello(NetworkRequestChannel & _channel, const std::string & _request) {
   _channel.cwrite("hello to you too");
 }
 
@@ -133,13 +133,13 @@ void process_newthread(NetworkRequestChannel & _channel, const std::string & _re
     fprintf(stderr, "p_create failed: %s\n", strerror(error));
   }  
 
-}
+}*/
 
 /*--------------------------------------------------------------------------*/
 /* LOCAL FUNCTIONS -- THE PROCESS REQUEST LOOP */
 /*--------------------------------------------------------------------------*/
 
-void process_request(NetworkRequestChannel & _channel, const std::string & _request) {
+/*void process_request(NetworkRequestChannel & _channel, const std::string & _request) {
 
   if (_request.compare(0, 5, "hello") == 0) {
     process_hello(_channel, _request);
@@ -175,6 +175,40 @@ void handle_process_loop(NetworkRequestChannel & _channel) {
     process_request(_channel, request);
   }
   
+}*/
+
+void connection_handler(int fd) {
+  for(;;) {
+    std::cout << "Reading next request from channel..." << std::flush;
+    char buf[255];
+    read(fd, buf, 255);
+    std::cout << "done." << std::endl;
+    std::cout << "New request is " << buf << std::endl;
+
+    std::string request = buf;
+
+    if (request.compare("quit") == 0) {
+      write(fd, "bye", 4);
+      usleep(10000);
+      break;
+    }
+
+    if (request.compare(0, 5, "hello") == 0) {
+      write(fd, "hello to you too", 17);
+    }
+
+    if (request.compare(0, 4, "data") == 0) {
+      std::string data = generate_data();
+      write(fd, data.c_str(), data.length()+1);
+    }
+  }
+}
+
+void* connection_handler_wrapper(void* args) {
+  connection_handler(*(int *)args);
+  close(*(int *)args);
+  delete args;
+  return nullptr;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -210,7 +244,7 @@ int main(int argc, char * argv[]) {
   } 
 
   //  std::cout << "Establishing control channel... " << std::flush;
-  NetworkRequestChannel control_channel(port_num, handle_process_loop, backlog);
+  NetworkRequestChannel control_channel = NetworkRequestChannel(port_num, &connection_handler_wrapper, backlog);
   //  std::cout << "done.\n" << std::endl;
 
   //handle_process_loop(control_channel);

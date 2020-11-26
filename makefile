@@ -25,14 +25,14 @@ sync_test_pcb: sync_test.cpp pcbuffer.o semaphore.o
 sync_test_s: sync_test.cpp semaphore.o 
 	$(C++) -DSEMAPHORE_TEST -o sync_test_s sync_test.cpp semaphore.o -lpthread
 
-reqchannel.o: reqchannel.hpp reqchannel.cpp
-	$(C++) -c -g reqchannel.cpp
+netreqchannel.o: netreqchannel.hpp netreqchannel.cpp
+	$(C++) -c -g netreqchannel.cpp -lpthread
 
-dataserver: dataserver.cpp reqchannel.o 
-	$(C++) -o dataserver dataserver.cpp reqchannel.o -lpthread
+dataserver: dataserver.cpp netreqchannel.o 
+	$(C++) -o dataserver dataserver.cpp netreqchannel.o -lpthread
 
-client: client.cpp reqchannel.o pcbuffer.o semaphore.o
-	$(C++) -o client client.cpp reqchannel.o pcbuffer.o semaphore.o -lpthread
+client: client.cpp netreqchannel.o pcbuffer.o semaphore.o
+	$(C++) -o client client.cpp netreqchannel.o pcbuffer.o semaphore.o -lpthread
 
 client_modified: client_modified.cpp reqchannel.o pcbuffer.o semaphore.o
-	$(C++) -o client_modified client_modified.cpp reqchannel.o pcbuffer.o semaphore.o -lpthread
+	$(C++) -o client_modified client_modified.cpp netreqchannel.o pcbuffer.o semaphore.o -lpthread
