@@ -188,17 +188,20 @@ void connection_handler(int fd) {
     std::string request = buf;
 
     if (request.compare("quit") == 0) {
+      std::cout << "Writing " << "'bye'" << " to socket " << fd << std::endl;
       write(fd, "bye", 4);
       usleep(10000);
       break;
     }
 
-    if (request.compare(0, 5, "hello") == 0) {
+    if (request.compare(0, 5, "hello") == 0) {\
+      std::cout << "Writing " << "'hello to you too'" << " to socket " << fd << std::endl;
       write(fd, "hello to you too", 17);
     }
 
     if (request.compare(0, 4, "data") == 0) {
       std::string data = generate_data();
+      std::cout << "Writing '" << data << "' to socket " << fd << std::endl;
       write(fd, data.c_str(), data.length()+1);
     }
   }

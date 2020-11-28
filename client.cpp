@@ -297,93 +297,87 @@ int main(int argc, char * argv[]) {
         exit(1);
     } 
 
-    /* We have valid parameters so we can begin the client & server */
-    if (fork() == 0){ 
-        execve("dataserver", NULL, NULL);
-    } else {
-        std::cout << "CLIENT STARTED:" << std::endl;
-        std::cout << "Establishing control channel... " << std::flush;
-        NetworkRequestChannel control(hostname, port_num);
-        std::cout << "done." << std::endl;
+    std::cout << "CLIENT STARTED:" << std::endl;
+    std::cout << "Establishing control channel... " << std::flush;
+    NetworkRequestChannel control(hostname, port_num);
+    std::cout << "done." << std::endl;
 
-        /* We use a hashmap so we can use the patient's name as a key to access the relevant data */
-        std::cout << "Creating hash map..." << std::endl;
-        std::unordered_map<std::string, PatientHistogram> patient_data;
-        std::cout << "done." << std::endl;
+    /* We use a hashmap so we can use the patient's name as a key to access the relevant data */
+    std::cout << "Creating hash map..." << std::endl;
+    std::unordered_map<std::string, PatientHistogram> patient_data;
+    std::cout << "done." << std::endl;
 
-        std::cout << "Creating PCBuffer..." << std::endl;
-        PCBuffer PCB(pcb_size);
-        std::cout << "done." << std::endl;
+    std::cout << "Creating PCBuffer..." << std::endl;
+    PCBuffer PCB(pcb_size);
+    std::cout << "done." << std::endl;
 
-        /* We create an array of threads to keep track of their thread ids, the statistics threads in particular. */
-        pthread_t* rq_threads = new pthread_t[NUM_PATIENTS];
-        pthread_t* st_threads = new pthread_t[NUM_PATIENTS];
-        pthread_t* wk_threads = new pthread_t[num_threads];
-        
-        /* We allocate an array of arguments for the threads here so that we can delete them later when the program is finishing up. */
-        WTFargs* wtfargs = new WTFargs[num_threads];
-        RTFargs* rtfargs = new RTFargs[NUM_PATIENTS];
-        STFargs* stfargs = new STFargs[NUM_PATIENTS];
+    /* We create an array of threads to keep track of their thread ids, the statistics threads in particular. */
+    pthread_t* rq_threads = new pthread_t[NUM_PATIENTS];
+    pthread_t* st_threads = new pthread_t[NUM_PATIENTS];
+    pthread_t* wk_threads = new pthread_t[num_threads];
+    
+    /* We allocate an array of arguments for the threads here so that we can delete them later when the program is finishing up. */
+    WTFargs* wtfargs = new WTFargs[num_threads];
+    RTFargs* rtfargs = new RTFargs[NUM_PATIENTS];
+    STFargs* stfargs = new STFargs[NUM_PATIENTS];
 
-        /* We will pass the memory addresses of these size_t's into the arguments; they will be shared across their respective threads */
-        size_t n_req_threads = NUM_PATIENTS;
-        size_t n_wkr_threads = num_threads;
+    /* We will pass the memory addresses of these size_t's into the arguments; they will be shared across their respective threads */
+    size_t n_req_threads = NUM_PATIENTS;
+    size_t n_wkr_threads = num_threads;
 
-        std::cout << "Creating request threads..." << std::endl;
-        for (size_t i = 0; i < NUM_PATIENTS; i++) {
-            // This is just to give them some sort of name.
-            std::string patient_name = "Patient " + std::to_string(i + 1);
+    std::cout << "Creating request threads..." << std::endl;
+    for (size_t i = 0; i < NUM_PATIENTS; i++) {
+        // This is just to give them some sort of name.
+        std::string patient_name = "Patient " + std::to_string(i + 1);
 
-            create_requester(i, num_requests, patient_name, &PCB, rq_threads, &n_req_threads, rtfargs);
+        create_requester(i, num_requests, patient_name, &PCB, rq_threads, &n_req_threads, rtfargs);
 
-            // These PCBuffers needs to be allocated on the heap, otherwise it will be destroyed once it leaves scope, even if we pass a reference.
-            PCBuffer* stats_buff = new PCBuffer(pcb_size);
-            patient_data[patient_name].PatientDataBuffer = stats_buff;
-            patient_data[patient_name].histogram = std::vector<int>(10, 0);
-            create_stats(i, patient_name, &patient_data, st_threads, stfargs);
-        }
-        std::cout << "done." << std::endl;
-
-        for (size_t i = 0; i < num_threads; i++) {
-            //std::string reply = control.send_request("newthread"); // Superfluous
-            //std::cout << "Reply to request 'newthread' is " << reply << std::endl;
-            std::cout << "Establishing new request channel... " << std::flush;
-            // These channels need to be allocated on the heap for the same reason as the stats buffers.
-            NetworkRequestChannel* new_chan = new NetworkRequestChannel(hostname, port_num); //TODO: CHANGE
-            std::cout << "done." << std::endl;
-            create_worker(i, new_chan, &PCB, &n_wkr_threads, &patient_data, wk_threads, wtfargs);
-        }
-
-        /* We need to wait for the termination of the statistics thread AND the last worker thread (see worker_thread_func), otherwise the program
-           will terminate prematurely */
-        for (size_t i = 0; i < NUM_PATIENTS; i++)
-            pthread_join(st_threads[i], NULL);
-
-        std::cout << "Closing control request channel..." << std::endl;
-        std::string fin_reply = control.send_request("quit");
-        std::cout << "Reply from control channel read: " << fin_reply << std::endl;
-        std::cout << "done." << std::endl;
-
-        std::cout << "Clearing the heap..." << std::endl;
-
-        /* We call detach on the other threads so that memory can be freed, and there will be no memory leaks, additionally we delete the request
-           channels here so that we don't have to loop twice. */
-        for (size_t i = 0; i < NUM_PATIENTS; i++)
-            pthread_detach(rq_threads[i]);
-        for (size_t i = 0; i < num_threads; i++) {
-            pthread_detach(wk_threads[i]);    
-            delete wtfargs[i].rc; // The reason they are deleted here is so that the server threads have a chance to read the quit message, or else it 
-                                  // can leave behind some fifo_* files.
-        }
-
-        delete[] rq_threads;
-        delete[] wk_threads;
-        delete[] st_threads;
-        delete[] wtfargs;
-        delete[] stfargs;
-        delete[] rtfargs;
-        std::cout << "Client stopped successfully." << std::endl;
+        // These PCBuffers needs to be allocated on the heap, otherwise it will be destroyed once it leaves scope, even if we pass a reference.
+        PCBuffer* stats_buff = new PCBuffer(pcb_size);
+        patient_data[patient_name].PatientDataBuffer = stats_buff;
+        patient_data[patient_name].histogram = std::vector<int>(10, 0);
+        create_stats(i, patient_name, &patient_data, st_threads, stfargs);
     }
+    std::cout << "done." << std::endl;
+
+    for (size_t i = 0; i < num_threads; i++) {
+        //std::string reply = control.send_request("newthread"); // Superfluous
+        //std::cout << "Reply to request 'newthread' is " << reply << std::endl;
+        std::cout << "Establishing new request channel... " << std::flush;
+        // These channels need to be allocated on the heap for the same reason as the stats buffers.
+        NetworkRequestChannel* new_chan = new NetworkRequestChannel(hostname, port_num); //TODO: CHANGE
+        std::cout << "done." << std::endl;
+        create_worker(i, new_chan, &PCB, &n_wkr_threads, &patient_data, wk_threads, wtfargs);
+    }
+
+    /* We need to wait for the termination of the statistics thread AND the last worker thread (see worker_thread_func), otherwise the program
+        will terminate prematurely */
+    for (size_t i = 0; i < NUM_PATIENTS; i++)
+        pthread_join(st_threads[i], NULL);
+
+    std::cout << "Closing control request channel..." << std::endl;
+    std::string fin_reply = control.send_request("quit");
+    std::cout << "Reply from control channel read: " << fin_reply << std::endl;
+    std::cout << "done." << std::endl;
+
+    std::cout << "Clearing the heap..." << std::endl;
+
+    /* We call detach on the other threads so that memory can be freed, and there will be no memory leaks, additionally we delete the request
+        channels here so that we don't have to loop twice. */
+    for (size_t i = 0; i < NUM_PATIENTS; i++)
+        pthread_detach(rq_threads[i]);
+    for (size_t i = 0; i < num_threads; i++) {
+        pthread_detach(wk_threads[i]);    
+        delete wtfargs[i].rc; 
+    }
+
+    delete[] rq_threads;
+    delete[] wk_threads;
+    delete[] st_threads;
+    delete[] wtfargs;
+    delete[] stfargs;
+    delete[] rtfargs;
+    std::cout << "Client stopped successfully." << std::endl;
 
     usleep(1000000);
     exit(0);

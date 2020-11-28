@@ -92,6 +92,7 @@ NetworkRequestChannel::NetworkRequestChannel(const string _server_host_name, con
 }
 
 NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void * (*connection_handler) (void *), int backlog) {
+    cout << "Creating TCP socket..." << endl;
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) {
         cerr << "Can't create socket: " << strerror(errno) << endl;
@@ -104,11 +105,13 @@ NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
     sin.sin_port = htons(_port_no);
 
+    cout << "Binding socket to port..." << endl;
     if (bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
         cerr << "Cannot bind socket" << endl;
         exit(1);
     }
 
+    cout << "Now listening on socket..." << endl;
     if (listen(s, backlog) < 0) {
         cerr << "Cannot listen on socket." << endl;
         exit(1);
@@ -126,7 +129,9 @@ NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void
     pthread_attr_init(&ta);
     pthread_attr_setdetachstate(&ta, PTHREAD_CREATE_DETACHED);
     for (;;) {
+        cout << "Awaiting connection..." << endl;
         s_sock = accept(s, (struct sockaddr *)&fsin, &fsin_sz);
+        cout << "Connection established. Forwarding to connection handler." << endl;
         int * p_s_sock = new int;
         *p_s_sock = s_sock;
         pthread_create(&th, &ta, connection_handler, (void *)p_s_sock);
@@ -134,7 +139,9 @@ NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void
 }
 
 NetworkRequestChannel::~NetworkRequestChannel() {
-
+    if (my_side == Side::CLIENT) {
+        close(fd);
+    }
 }
 
 string NetworkRequestChannel::send_request(string _request) {
