@@ -49,13 +49,13 @@
 /* VARIABLES */
 /*--------------------------------------------------------------------------*/
 
-static int nthreads = 0;
+    /* -- (none) -- */
 
 /*--------------------------------------------------------------------------*/
 /* FORWARDS */
 /*--------------------------------------------------------------------------*/
 
-//void handle_process_loop(NetworkRequestChannel & _channel);
+void connection_handler(int fd);
 
 /*--------------------------------------------------------------------------*/
 /* LOCAL FUNCTIONS -- SUPPORT FUNCTIONS */
@@ -78,109 +78,24 @@ std::string generate_data() {
 }
 
 /*--------------------------------------------------------------------------*/
-/* LOCAL FUNCTIONS -- THREAD FUNCTIONS */
+/* LOCAL FUNCTIONS -- HANDLER WRAPPER */
 /*--------------------------------------------------------------------------*/
 
-/*void * handle_data_requests(void * args) {
-
-  NetworkRequestChannel * data_channel =  (NetworkRequestChannel*)args;
-
-  // -- Handle client requests on this channel. 
-  
-  handle_process_loop(*data_channel);
-
-  // -- Client has quit. We remove channel.
- 
-  delete data_channel;
-
-  return nullptr; // keep compiler happy
-}*/
-
-/*--------------------------------------------------------------------------*/
-/* LOCAL FUNCTIONS -- INDIVIDUAL REQUESTS */
-/*--------------------------------------------------------------------------*/
-
-/*void process_hello(NetworkRequestChannel & _channel, const std::string & _request) {
-  _channel.cwrite("hello to you too");
+void* connection_handler_wrapper(void* args) {
+  connection_handler(*(int *)args);
+  close(*(int *)args);
+  delete args;
+  return nullptr;
 }
-
-void process_data(NetworkRequestChannel & _channel, const std::string &  _request) {
-  std::string data = generate_data();
-  _channel.cwrite(data);
-}
-
-void process_newthread(NetworkRequestChannel & _channel, const std::string & _request) {
-  int error;
-  nthreads ++;
-
-  // -- Name new data channel
-
-  std::string new_channel_name = "data" + int2string(nthreads) + "_";
- 
-  // -- Pass new channel name back to client
-
-  _channel.cwrite(new_channel_name);
-
-  // -- Construct new data channel (pointer to be passed to thread function)
-  
-  NetworkRequestChannel * data_channel = new RequestChannel(new_channel_name, RequestChannel::Side::SERVER);
-
-  // -- Create new thread to handle request channel
-
-  pthread_t thread_id;
-  //  std::cout << "starting new thread " << nthreads << std::endl;
-  if ((error = pthread_create(& thread_id, nullptr, handle_data_requests, data_channel))) {
-    fprintf(stderr, "p_create failed: %s\n", strerror(error));
-  }  
-
-}*/
 
 /*--------------------------------------------------------------------------*/
 /* LOCAL FUNCTIONS -- THE PROCESS REQUEST LOOP */
 /*--------------------------------------------------------------------------*/
 
-/*void process_request(NetworkRequestChannel & _channel, const std::string & _request) {
-
-  if (_request.compare(0, 5, "hello") == 0) {
-    process_hello(_channel, _request);
-  }
-  else if (_request.compare(0, 4, "data") == 0) {
-    process_data(_channel, _request);
-  }
-  else if (_request.compare(0, 9, "newthread") == 0) {
-    process_newthread(_channel, _request);
-  }
-  else {
-    _channel.cwrite("unknown request");
-  }
-
-}
-
-void handle_process_loop(NetworkRequestChannel & _channel) {
-
-  for(;;) {
-
-    std::cout << "Reading next request from channel (" << _channel.name()
-	      << ") ..." << std::flush;
-    std::string request = _channel.cread();
-    std::cout << " done (" << _channel.name() << ")." << std::endl;
-    std::cout << "New request is " << request << std::endl;
-
-    if (request.compare("quit") == 0) {
-      _channel.cwrite("bye");
-      usleep(10000);          // give the other end a bit of time.
-      break;                  // break out of the loop;
-    }
-
-    process_request(_channel, request);
-  }
-  
-}*/
-
 void connection_handler(int fd) {
   for(;;) {
     std::cout << "Reading next request from channel..." << std::flush;
-    char buf[255];
+    char buf[255]; // 255 is MAX_MESSAGE in netreqchannel.hpp
     read(fd, buf, 255);
     std::cout << "done." << std::endl;
     std::cout << "New request is " << buf << std::endl;
@@ -205,13 +120,6 @@ void connection_handler(int fd) {
       write(fd, data.c_str(), data.length()+1);
     }
   }
-}
-
-void* connection_handler_wrapper(void* args) {
-  connection_handler(*(int *)args);
-  close(*(int *)args);
-  delete args;
-  return nullptr;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -246,11 +154,6 @@ int main(int argc, char * argv[]) {
     exit(1);
   } 
 
-  //  std::cout << "Establishing control channel... " << std::flush;
   NetworkRequestChannel control_channel = NetworkRequestChannel(port_num, &connection_handler_wrapper, backlog);
-  //  std::cout << "done.\n" << std::endl;
-
-  //handle_process_loop(control_channel);
-
 }
 

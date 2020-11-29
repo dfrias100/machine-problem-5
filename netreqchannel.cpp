@@ -63,25 +63,28 @@
 /*--------------------------------------------------------------------------*/
 
 NetworkRequestChannel::NetworkRequestChannel(const string _server_host_name, const unsigned short _port_no) {
+    // Creating a socket information struct
     struct sockaddr_in sin;
-    memset(&sin, 0, sizeof(sin));
+    memset(&sin, 0, sizeof(sin)); // Filling the entire struct to 0
     sin.sin_family = AF_INET;
 
-    sin.sin_port = htons(_port_no);
-
+    sin.sin_port = htons(_port_no); 
+    cout << "Getting host name entry..." << endl;
     if (struct hostent * phe = gethostbyname(_server_host_name.c_str()))
-        memcpy(&sin.sin_addr, phe->h_addr, phe->h_length);
+        memcpy(&sin.sin_addr, phe->h_addr, phe->h_length); 
     else if ((sin.sin_addr.s_addr = inet_addr(_server_host_name.c_str())) == INADDR_NONE) {
-        cerr << "can't get " << _server_host_name << " host entry\n";
+        cerr << "Can't get \"" << _server_host_name << "\"'s host entry\n";
         exit(1);
     }
     
+    cout << "Creating socket..." << endl;
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) { 
         cerr << "can't create socket: " << s << strerror(errno);
         exit(1);
     }
 
+    cout << "Attempting to connect to server..." << endl;
     if (connect(s, (struct sockaddr*)&sin, sizeof(sin)) < 0) {
         cerr << "can't connect to server." << endl;
         exit(1);
@@ -117,8 +120,6 @@ NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void
         exit(1);
     }
 
-    fd = s;
-
     my_side = Side::SERVER;
 
     int s_sock;
@@ -132,7 +133,7 @@ NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port_no, void
         cout << "Awaiting connection..." << endl;
         s_sock = accept(s, (struct sockaddr *)&fsin, &fsin_sz);
         cout << "Connection established. Forwarding to connection handler." << endl;
-        int * p_s_sock = new int;
+        int * p_s_sock = new int; // Avoiding race conditions
         *p_s_sock = s_sock;
         pthread_create(&th, &ta, connection_handler, (void *)p_s_sock);
     }
@@ -142,6 +143,7 @@ NetworkRequestChannel::~NetworkRequestChannel() {
     if (my_side == Side::CLIENT) {
         close(fd);
     }
+    // Server destructor not needed for this MP, because ^C closes the server.
 }
 
 string NetworkRequestChannel::send_request(string _request) {
@@ -154,12 +156,12 @@ string NetworkRequestChannel::cread() {
     char buf[MAX_MESSAGE];
 
     if (read(fd, buf, MAX_MESSAGE) < 0) {
-        perror(string("Request Channnel (" + to_string(this->fd) + "): Error reading from socket!").c_str());
+        perror(string("Request Channnel (FD-" + to_string(this->fd) + "): Error reading from socket!").c_str());
     }
 
     std::string s = buf;
 
-    cout << "Request Channel (" << this->fd << ") reads [" << buf << "]" << endl;
+    cout << "Request Channel (FD-" << this->fd << ") reads [" << buf << "]" << endl;
 
     return s;
 }
@@ -169,12 +171,12 @@ int NetworkRequestChannel::cwrite(string _msg) {
         cerr << "Message too long for channel!" << endl;
     }
 
-    cout << "Request Channel (" << this->fd << ") writing [" << _msg << "]";
+    cout << "Request Channel (FD-" << this->fd << ") writing [" << _msg << "]";
 
     const char* s = _msg.c_str();
 
     if (write(fd, s, strlen(s)+1) < 0) {
-        perror(string("Request Channel (" + to_string(this->fd) + ") : Error writing to socket!").c_str());
+        perror(string("Request Channel (FD-" + to_string(this->fd) + ") : Error writing to socket!").c_str());
     }
 
     cout << "(" << this->fd << ") done writing." << endl;

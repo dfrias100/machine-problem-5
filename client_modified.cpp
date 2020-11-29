@@ -22,10 +22,12 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <unordered_map>
 #include <vector>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/stat.h>
 
 #include <errno.h>
@@ -299,6 +301,14 @@ int main(int argc, char * argv[]) {
 
     std::cout << "CLIENT STARTED:" << std::endl;
 
+    struct timeval t1;
+    struct timeval t2;
+    long diff_sec;
+    long diff_usec;
+    // File to hold the data for overhead
+    std::ofstream fout;
+    fout.open("outfile.csv", std::ios_base::app);
+
     /* We use a hashmap so we can use the patient's name as a key to access the relevant data */
     std::cout << "Creating hash map..." << std::endl;
     std::unordered_map<std::string, PatientHistogram> patient_data;
@@ -337,6 +347,7 @@ int main(int argc, char * argv[]) {
     }
     std::cout << "done." << std::endl;
 
+    gettimeofday(&t1, 0);
     for (size_t i = 0; i < num_threads; i++) {
         std::cout << "Establishing new request channel... " << std::flush;
         // These channels need to be allocated on the heap for the same reason as the stats buffers.
@@ -350,6 +361,15 @@ int main(int argc, char * argv[]) {
     for (size_t i = 0; i < NUM_PATIENTS; i++)
         pthread_join(st_threads[i], NULL);
 
+    gettimeofday(&t2, 0);
+    diff_sec = t2.tv_sec - t1.tv_sec;
+    diff_usec = t2.tv_usec - t1.tv_usec;
+    if(diff_usec < 0) {
+        diff_usec += 1000000;
+        diff_sec--;
+    }
+    // This will output to data1.csv
+    fout << num_requests << ", " << num_threads << ", " << pcb_size << ", " << diff_sec*1e6 + diff_usec << std::endl;
 
     std::cout << "Clearing the heap..." << std::endl;
 

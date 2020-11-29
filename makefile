@@ -34,5 +34,5 @@ dataserver: dataserver.cpp netreqchannel.o
 client: client.cpp netreqchannel.o pcbuffer.o semaphore.o
 	$(C++) -o client client.cpp netreqchannel.o pcbuffer.o semaphore.o -lpthread
 
-client_modified: client_modified.cpp reqchannel.o pcbuffer.o semaphore.o
+client_modified: client_modified.cpp netreqchannel.o pcbuffer.o semaphore.o
 	$(C++) -o client_modified client_modified.cpp netreqchannel.o pcbuffer.o semaphore.o -lpthread
